@@ -10,10 +10,6 @@ const port = 4480;
 // Set up website
 const expressApp = express();
 
-// expressApp.get('/', (req, res) => {
-//     res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
-// });
-
 const upload = multer({
     dest: "./images/raw"
     // you might also want to set some limits: https://github.com/expressjs/multer#limits
@@ -29,7 +25,7 @@ const handleError = (err, res) => {
 
 expressApp.post(
     "/upload",
-    upload.single("file" /* name attribute of <file> element in your form */),
+    upload.single("file"),
     async (req, res) => {
         if(!req.file) {
             res.status(400)
