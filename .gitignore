@@ -217,5 +217,17 @@ fabric.properties
 .idea/codestream.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/node,webstorm
+images/*
 
-images/
+# Only keep default image
+!images/raw
+images/raw/*
+!images/raw/1.png
+
+!images/resized
+images/resized/*
+!images/resized/1.png
+
+!images/processed
+images/processed/*
+!images/processed/1.png
