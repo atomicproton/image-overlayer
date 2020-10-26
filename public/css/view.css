@@ -14,3 +14,7 @@ img {
     max-width:90%;
     max-height:90%;
 }
+
+body {
+    background-color: lightgray;
+}
