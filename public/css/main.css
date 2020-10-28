@@ -24,6 +24,8 @@ img {
     width: 100%;
 }
 
-body {
+body, html, div {
     background-color: lightgray;
+    margin: 0;
+    padding: 0;
 }
