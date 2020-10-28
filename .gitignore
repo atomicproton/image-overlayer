@@ -231,3 +231,5 @@ images/resized/*
 !images/processed
 images/processed/*
 !images/processed/1.png
+
+!images/test images
