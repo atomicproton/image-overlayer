@@ -7,6 +7,10 @@ const jimp = require('jimp');
 
 const port = 4480;
 
+// Paper: 1989, 2574
+const width = 2024;
+const height = 2024;
+
 // Set up website
 const expressApp = express();
 
@@ -27,7 +31,7 @@ expressApp.post(
     "/upload",
     upload.single("file"),
     async (req, res) => {
-        if(!req.file) {
+        if (!req.file) {
             res.status(400)
                 .contentType("text/plain")
                 .end("No file submitted");
@@ -39,36 +43,31 @@ expressApp.post(
         if (rawExtension === ".png" || rawExtension === ".jpg") {
             fs.readdir(path.join(__dirname, "images/raw"), async (err, files) => {
                 if (err) return handleError(err, res);
+
                 const step = files.length;
                 const rawFilePath = path.join(__dirname, "images/raw/" + step + rawExtension);
                 const resizedFilePath = path.join(__dirname, "images/resized/" + step + ".png");
                 const processedFilePath = path.join(__dirname, "images/processed/" + step + ".png");
                 const previousFilePath = path.join(__dirname, "images/processed/" + (step - 1) + ".png");
 
-                fs.rename(tempPath, rawFilePath, async err => {
-                    if (err) return handleError(err, res);
+                // Resize image
+                await fs.renameSync(tempPath, rawFilePath);
+                const uploadedImage = await jimp.read(rawFilePath);
+                await uploadedImage.resize(width, height);
+                await uploadedImage.writeAsync(resizedFilePath);
 
-                    await sharp(rawFilePath)
-                        .resize(1989, 2574, {fit: sharp.fit.fill})
-                        .png()
-                        .toFile(resizedFilePath).then(async () => {
-                            const resizedImage = await jimp.read(resizedFilePath);
-                            const negative = await jimp.read(resizedFilePath);
-                            const oldImage = await jimp.read(previousFilePath);
+                const resizedImage = await jimp.read(resizedFilePath);
+                const negative = await jimp.read(resizedFilePath);
+                await negative.invert();
+                const oldImage = await jimp.read(previousFilePath);
 
-                            await oldImage.invert();
-                            await negative.invert();
-                            await negative.mask(oldImage, 0, 0);
-                            await resizedImage.composite(negative, 0, 0);
-                            await resizedImage.write(processedFilePath);
-
-                        }).catch(err => {
-                            console.log(err)
-                            handleError(err, res);
-                        });
-
+                await oldImage.invert();
+                await negative.mask(oldImage, 0, 0);
+                await resizedImage.composite(negative, 0, 0);
+                await resizedImage.write(processedFilePath, () => {
                     res.status(200)
                         .redirect("step.html?step=" + step);
+
                 });
             });
         } else {
@@ -119,6 +118,37 @@ expressApp.get("/currentImage", async (req, res) => {
         res.status(200)
             .sendFile(processedFilePath);
     });
+});
+
+expressApp.get("/reset", async (req, res) => {
+    const processedDir = path.join(__dirname, "images/processed/");
+    const rawDir = path.join(__dirname, "images/raw/");
+    const resizedDir = path.join(__dirname, "images/resized/");
+    const dirs = [processedDir, rawDir, resizedDir];
+
+    for (const dir of dirs) {
+        fs.readdir(dir, (err, files) => {
+            if (err) throw err;
+
+            for (const file of files) {
+                if (file !== "1.png") {
+                    console.log("Deleting " + file);
+                    fs.unlink(path.join(dir, file), err => {
+                        if (err) throw err;
+                    });
+                }
+            }
+        });
+    }
+
+    // Resize base file
+    const baseFile = await jimp.read(path.join(rawDir, "1.png"));
+    baseFile.resize(width, height);
+    await baseFile.writeAsync(path.join(resizedDir, "1.png"));
+    await baseFile.writeAsync(path.join(processedDir, "1.png"));
+
+    res.status(200)
+        .redirect("/");
 });
 
 expressApp.use(express.static('public'))
